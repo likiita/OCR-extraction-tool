@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 from typing import List, Tuple
 
 import streamlit as st
@@ -115,10 +116,65 @@ def answer_with_grok(question: str, context_text: str, temperature: float = 0.0,
     client = build_openai_compatible_client()
     model_id = st.secrets.get("oci", {}).get("genai_model_id", "xai.grok-4-fast-non-reasoning")
 
-    # Keep the prompt tight; model is code-oriented but can handle grounded Q&A.
+    json_format = {
+        "invoiceDetails": {
+            "supplier": {
+                "name": "",
+                "arabic_name": "",
+                "trn": "",
+                "contact_numbers": [""],
+                "email": "",
+                "location": ""
+            },
+            "invoice": {
+                "invoice_no": "",
+                "date": "",
+                "job_number": "",
+                "payment_method": "",
+                "customer_trn": ""
+            },
+            "customer": {
+                "name": "",
+                "address": "",
+                "po_box": "",
+                "telephone": "",
+                "person_in_charge": ""
+            },
+            "vehicle": {
+                "model": "",
+                "registration_number": "",
+                "chassis_number": "",
+                "kilometers": None
+            },
+            "requirements": [""],
+            "jobs_carried_out": "",
+            "items": [
+                {"sl_no": None, "description": "", "qty": None, "rate": None, "amount": None}
+                for _ in range(16)
+            ],
+            "totals": {
+                "total_amount": None,
+                "vat_5_percent": None,
+                "net_amount": None,
+                "amount_in_words": ""
+            },
+            "purchase_order": {
+                "po_number": "",
+                "date": "",
+                "po_total": None,
+                "description": ""
+            }
+        }
+    }
+
+    json_format_str = json.dumps(json_format, indent=2)
+
     system = (
         "You are a precise assistant. Answer ONLY using the provided context. "
-        "If the answer is not present, say you don't know."
+        "If the answer is not present, say you don't know. "
+        "If the user asks for output in a specific format, follow that format strictly. Always be concise and accurate. "
+        "If the user wants output in JSON format, respond with JSON only, no explanations or extra text. "
+        f"Follow the below format to answer in JSON:\n{json_format_str}"
     )
     # crude length guard to avoid oversize prompts; replace with tokenizer-aware approach as needed
     context_cap = 40_000
@@ -224,4 +280,4 @@ if st.button("Ask"):
             except Exception as e:
                 st.error(f"LLM call failed: {e}")
 else:
-    st.caption("Tip: After uploading, ask a question. The LLM will ONLY see the text extracted by OCI DU.")
+    st.caption("Tip: After uploading, ask a question.")
